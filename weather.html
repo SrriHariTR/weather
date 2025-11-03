@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather App</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f3f7;
+        padding: 2rem;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      h1 {
+        color: #00796b;
+      }
+
+      input,
+      button {
+        padding: 0.5rem 1rem;
+        margin: 0.5rem;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+
+      button {
+        background-color: #00796b;
+        color: white;
+        cursor: pointer;
+      }
+
+      .weather-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 24px;
+        display: flex;
+        justify-content: space-between;
+        max-width: 900px;
+        margin-top: 1rem;
+        width: 100%;
+        flex: 1 1 420px;
+      }
+
+      .left-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        border-right: 1px solid #e0e0e0;
+        padding-right: 20px;
+      }
+
+      .left-section img {
+        width: 80px;
+        height: 80px;
+      }
+
+      .temperature {
+        font-size: 72px;
+        font-weight: 700;
+        margin: 10px 0;
+      }
+
+      .realfeel {
+        font-size: 18px;
+        margin-top: -8px;
+        color: #333;
+      }
+
+      .description {
+        font-size: 20px;
+        font-weight: 600;
+        margin-top: 16px;
+      }
+
+      .right-section {
+        flex: 1;
+        padding-left: 30px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .weather-detail {
+        display: flex;
+        justify-content: space-between;
+        margin: 8px 0;
+        font-size: 16px;
+      }
+
+      .label {
+        color: #444;
+        font-weight: 500;
+      }
+
+      .value {
+        font-weight: 600;
+      }
+
+      .highlight {
+        color: #f4a600;
+        font-weight: bold;
+      }
+
+      .header {
+        font-size: 14px;
+        font-weight: bold;
+        color: #666;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+      }
+
+      .timestamp {
+        font-size: 14px;
+        color: #666;
+        text-align: right;
+        margin-bottom: 10px;
+      }
+
+      .extra-section {
+        margin-top: 1rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        width: 100%;
+        max-width: 900px;
+        flex: 1 1 420px;
+      }
+
+      .info-card {
+        background: #fff;
+        padding: 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .info-title {
+        font-size: 14px;
+        color: #666;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        font-weight: bold;
+      }
+
+      .info-value {
+        font-size: 20px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .cont {
+        display: flex;
+      }
+
+      .container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: center;
+        align-items: flex-start;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Weather Lookup</h1>
+    <div class="cont">
+      <input type="text" id="locationInput" placeholder="Enter a location" />
+      <button onclick="fetchWeather()">Check Weather</button>
+    </div>
+    <div id="weatherResult" style="display: none"></div>
+
+    <script>
+      const API_KEY = "AIzaSyAbxgH3Q6_25y79BnE03Q04QoZMSm877M4"; // Replace with your actual API key
+      let place = "";
+      async function fetchWeather() {
+        place = document.getElementById("locationInput").value.trim();
+        if (!place) return alert("Please enter a location");
+
+        try {
+          // 1. Get latitude and longitude from Geocoding API
+          const geoRes = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+              place
+            )}&key=${API_KEY}`
+          );
+          const geoData = await geoRes.json();
+
+          if (geoData.status !== "OK") {
+            alert("Location not found");
+            return;
+          }
+
+          const { lat, lng } = geoData.results[0].geometry.location;
+
+          // 2. Fetch weather data
+          const weatherRes = await fetch(
+            `https://weather.googleapis.com/v1/currentConditions:lookup?key=${API_KEY}&location.latitude=${lat}&location.longitude=${lng}`
+          );
+          const weatherData = await weatherRes.json();
+
+          renderWeather(weatherData, place);
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Something went wrong. Please check the API key or try again.");
+        }
+      }
+
+      function renderWeather(data, place) {
+        const weatherDiv = document.getElementById("weatherResult");
+
+        const icon =
+          data.weatherCondition?.icon?.replace("weather_", "") ||
+          "partly_cloudy";
+        const iconUrl = `https://ssl.gstatic.com/onebox/weather/64/${icon}.png`;
+        const description = data.weatherCondition?.description?.text || "N/A";
+        const temp = data.temperature?.degrees ?? "N/A";
+        const feels = data.feelsLikeTemperature?.degrees ?? "N/A";
+        const dew = data.dewPoint?.degrees ?? "N/A";
+        const heat = data.heatIndex?.degrees ?? "N/A";
+        const chill = data.windChill?.degrees ?? "N/A";
+        const humidity = data.relativeHumidity ?? "N/A";
+        const uv = data.uvIndex ?? "N/A";
+        const cloud = data.cloudCover ?? "N/A";
+        const pressure = data.airPressure?.meanSeaLevelMillibars ?? "N/A";
+        const wind = data.wind?.speed?.value + " Km/hr" || "N/A";
+        const windGust = data.wind?.gust?.value + " Km/hr" || "N/A";
+        const visibility = data.visibility?.distance + " Km" || "N/A";
+        const timezone = data.timeZone?.id || "N/A";
+        const precipProb = data.precipitation?.probability?.percent ?? "N/A";
+        const minTemp =
+          data.currentConditionsHistory?.minTemperature?.degrees ?? "N/A";
+        const maxTemp =
+          data.currentConditionsHistory?.maxTemperature?.degrees ?? "N/A";
+        const time = new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        weatherDiv.innerHTML = `
+
+        <div class="container">
+  <div class="weather-card">
+    <div class="left-section">
+      <div class="header">Weather in ${place}</div>
+      <img src="${iconUrl}" alt="Weather Icon">
+      <div class="temperature">${temp}°C</div>
+      <div class="realfeel">Feels like ${feels}°C</div>
+      <div class="description">${description}</div>
+    </div>
+    <div class="right-section">
+      <div class="timestamp">${time}</div>
+      <div class="weather-detail"><span class="label">Humidity</span><span class="value">${humidity}%</span></div>
+      <div class="weather-detail"><span class="label">Wind</span><span class="value">${wind}</span></div>
+      <div class="weather-detail"><span class="label">Wind Gusts</span><span class="value">${windGust}</span></div>
+      <div class="weather-detail"><span class="label">Cloud Cover</span><span class="value">${cloud}%</span></div>
+      <div class="weather-detail"><span class="label">Pressure</span><span class="value">${pressure} mb</span></div>
+      <div class="weather-detail"><span class="label">Visibility</span><span class="value">${visibility}</span></div>
+    </div>
+  </div>
+
+  <div class="extra-section">
+  <div class="info-card">
+    
+    <div class="info-title"><i class="fas fa-temperature-low icon"></i>Min Temperature</div>
+    <div class="info-value">${minTemp}°C</div>
+  </div>
+
+  <div class="info-card">
+    
+    <div class="info-title"><i class="fas fa-temperature-high icon"></i>Max Temperature</div>
+    <div class="info-value">${maxTemp}°C</div>
+  </div>
+
+  <div class="info-card">
+    
+    <div class="info-title"><i class="fas fa-water icon"></i>Dew Point</div>
+    <div class="info-value">${dew}°C</div>
+  </div>
+
+  <div class="info-card">
+    
+    <div class="info-title"><i class="fas fa-fire icon"></i>Heat Index</div>
+    <div class="info-value">${heat}°C</div>
+  </div>
+
+  <div class="info-card">
+    
+    <div class="info-title"><i class="fas fa-snowflake icon"></i>Wind Chill</div>
+    <div class="info-value">${chill}°C</div>
+  </div>
+
+  <div class="info-card">
+    
+    <div class="info-title"><i class="fas fa-sun icon"></i>UV Index</div>
+    <div class="info-value">${uv}</div>
+  </div>
+
+  <div class="info-card">
+    
+    <div class="info-title"><i class="fas fa-cloud-rain icon"></i>Precipitation Chance</div>
+    <div class="info-value">${precipProb}%</div>
+  </div>
+
+  <div class="info-card">
+    
+    <div class="info-title"><i class="fas fa-globe icon"></i>Time Zone</div>
+    <div class="info-value">${timezone}</div>
+  </div>
+</div>
+
+  </div>
+  `;
+
+        weatherDiv.style.display = "block";
+      }
+    </script>
+  </body>
+</html>
